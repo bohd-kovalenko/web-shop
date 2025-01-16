@@ -1,8 +1,8 @@
+import {useState,useEffect} from "react";
+import {ShopService} from "@/service/shop-service.ts";
 import SliderCard from "@/components/slider-card/SliderCard.tsx";
 import Slider from "react-slick";
-import {useState} from "react";
 import ShopItem from "@/components/shop-item/ShopItem.tsx";
-import shopElements from '@/constants/shop-elements.json';
 import sliderElements from '@/constants/sliders-elements.json';
 
 import {
@@ -15,9 +15,13 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 import Search from "@/components/search/Search.tsx";
+import {ElemItem} from "@/store/basket-store.ts";
 
 const Home = () => {
     const [activeSlide, setActiveSlide] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [shopElements, setShopElements] = useState<ElemItem[]>([]);
+    const shopService = new ShopService();
 
     const settings = {
         className: "my-12 h-[250px] w-[80%] mx-auto",
@@ -44,21 +48,42 @@ const Home = () => {
         ]
     };
 
+    useEffect(()=>{
+        const fetchShopElements = async () => {
+            try {
+                const elements = await shopService.getAllElements();
+                setShopElements(elements)
+            } catch (error) {
+                console.error('Failed to fetch shop elements:', error);
+            }finally {
+                setLoading(false);
+            }
+        };
+        fetchShopElements();
+    })
+
 
     return (
         <div className={'p-5'}>
             <Slider {...settings}>
                 {
                     sliderElements.map((elem, i) => (
-                        <SliderCard elem={elem} isActive={i === activeSlide}/>
+                        <SliderCard key={i} elem={elem} isActive={i === activeSlide}/>
                     ))
                 }
             </Slider>
             <Search/>
             <div className="mt-5 flex flex-shopElement flex-wrap w-full justify-center lg:justify-normal">
-                {shopElements.map((elem, i) => (
-                    <ShopItem key={i} elem={elem}/>
-                ))}
+                {Array.isArray(shopElements) && shopElements.length > 0 ? (
+                    shopElements.map((elem, i) => (
+                        <ShopItem key={i} elem={elem} />
+                    ))
+                ) : (
+                    loading &&
+                    [...Array(3)].map((_, index) => (
+                        <ShopItem key={index} loading={loading} />
+                    ))
+                )}
                 <Pagination>
                     <PaginationContent>
                         <PaginationItem>
